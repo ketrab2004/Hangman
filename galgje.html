@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en-GB" style="height:100%;">
+
+<style>
+	body
+		{background-color: wheat;}
+	button
+		{width: 100%;
+		height: 100%;
+		font-family: Impact, Charcoal, sans-serif;
+		font-size:20px;}
+	input
+		{font-family: "Comic Sans MS", cursive, sans-serif;
+		font-size:30px;}
+	.guesses
+		{font-family: "Comic Sans MS", cursive, sans-serif;
+		font-size:25px;}
+</style>
+
+<body onresize="resizeCanvas()">
+
+<canvas id="Canvas" width="200" height="100" style="border:1px solid #000000;">Your browser does not support the HTML5 canvas tag.</canvas>
+
+<div style="display: none;" id="buttons">
+	<h1 id="showTheThingsHere" class="guesses">b__h</h1>
+	
+	<table style="width:100%;height:27.5vh;">
+		<tr>
+			<th><button type="button" onclick="buttonPress(1)" id="button1">A</button></th>
+			<th><button type="button" onclick="buttonPress(2)" id="button2">B</button></th>
+			<th><button type="button" onclick="buttonPress(3)" id="button3">C</button></th>
+			<th><button type="button" onclick="buttonPress(4)" id="button4">D</button></th>
+			<th><button type="button" onclick="buttonPress(5)" id="button5">E</button></th>
+			<th><button type="button" onclick="buttonPress(6)" id="button6">F</button></th>
+			<th><button type="button" onclick="buttonPress(7)" id="button7">G</button></th>
+		</tr>
+		<tr>
+			<th><button type="button" onclick="buttonPress(8)" id="button8">H</button></th>
+			<th><button type="button" onclick="buttonPress(9)" id="button9">I</button></th>
+			<th><button type="button" onclick="buttonPress(10)" id="button10">J</button></th>
+			<th><button type="button" onclick="buttonPress(11)" id="button11">K</button></th>
+			<th><button type="button" onclick="buttonPress(12)" id="button12">L</button></th>
+			<th><button type="button" onclick="buttonPress(13)" id="button13">M</button></th>
+			<th><button type="button" onclick="buttonPress(14)" id="button14">N</button></th>
+		</tr>
+		<tr>
+			<th><button type="button" onclick="buttonPress(15)" id="button15">O</button></th>
+			<th><button type="button" onclick="buttonPress(16)" id="button16">P</button></th>
+			<th><button type="button" onclick="buttonPress(17)" id="button17">Q</button></th>
+			<th><button type="button" onclick="buttonPress(18)" id="button18">R</button></th>
+			<th><button type="button" onclick="buttonPress(19)" id="button19">S</button></th>
+			<th><button type="button" onclick="buttonPress(20)" id="button20">T</button></th>
+			<th><button type="button" onclick="buttonPress(21)" id="button21">U</button></th>
+		</tr>
+		<tr>
+			<th><button type="button" onclick="buttonPress(22)" id="button22">V</button></th>
+			<th><button type="button" onclick="buttonPress(23)" id="button23">W</button></th>
+			<th><button type="button" onclick="buttonPress(24)" id="button24">X</button></th>
+			<th><button type="button" onclick="buttonPress(25)" id="button25">Y</button></th>
+			<th><button type="button" onclick="buttonPress(26)" id="button26">Z</button></th>
+		</tr>
+	</table>
+</div>
+
+<div id="enterWord" style="display: block;">
+	<h1>Choose a word</h1>
+	<input id="word" name="word" type="text" style="width:auto;height:7.5vh;"></input>
+	<br><br>
+	<button type="button" style="height:12.5vh" onclick="setWord()">Set word</button>
+</div>
+
+<script>
+	var input = document.getElementById("word");
+	var divBox1 = document.getElementById("enterWord");
+	var divBox2 = document.getElementById("buttons");
+	var things = document.getElementById("showTheThingsHere");
+
+	var drawTime = 1;
+	var ps = 0;
+	var lastTick = 0;
+	var drawing = 0;
+	var lineWidth = 5;
+
+	var particles = [];
+	var particleRate = 1/30;
+	var particleLife = 10;
+	var particleSpeed = .25;
+	var particleRotSpeed = 45;
+	var particleSize = .035;
+	var particleProgress = 0;
+	
+	var word = "";
+	var wGuesses = 0;
+	
+	var canvas = document.getElementById("Canvas");
+	var ctx = canvas.getContext("2d");
+	
+	var victory = false;
+	var lost = false;
+
+	function resizeCanvas()//for "full" screen
+	{
+		canvas.width = document.documentElement.clientWidth-20
+		canvas.height = (document.documentElement.clientHeight*.65)-20
+		//drawText(10,30,"30px Arial","Width:"+canvas.width+" Height:"+canvas.height)
+	}
+	
+	var otherChars = [" ","1","2","3","4","5","6","7","8","9","0","_","'",",",".","`","-","!"];
+	var alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"];
+	var guesses = [];
+	function buttonPress(btn)
+	{
+		var button = alphabet[btn-1];
+		guesses[guesses.length] = button
+		if (isInArray(button, Array.from(word.toLowerCase())))
+		{
+			updateGuessingWord();
+		}else
+		{
+			wGuesses++;
+			ps = 0;
+		}
+
+		document.getElementById("button"+btn).disabled = true;
+	}
+	
+	function setWord()
+	{
+		var toTest = input.value
+		var isOk = true
+		if (toTest == "")
+		{
+			isOk = false
+			alert("You need to type in a word.")
+		}else
+		{
+			for (var i=0; i<toTest.length; i++)
+			{
+				if (!isInArray(toTest.charAt(i),alphabet) && !isInArray(toTest.charAt(i),otherChars)) //not in alphabet nor otherchars
+				{
+					isOk = false
+					alert("In your word at position '"+(i+1)+"' the character '"+toTest.charAt(i)+"' is not a character that can be used.")
+					break
+				}
+			}
+		}
+		if (isOk)
+		{
+			word = toTest;
+			divBox2.style.display = "block"; //buttons
+			divBox1.style.display = "none"; //enterword
+			
+			updateGuessingWord();
+		}
+	}
+	
+	function isInArray(str,arr)
+	{
+		var va = false
+		for (var i=0; i<arr.length; i++)
+		{
+			if(str.toLowerCase() == arr[i])
+			{
+				va = true
+				break
+			}
+		}
+		return va
+	}
+
+	function onDraw(timestamp)
+	{
+		var delta = (timestamp/1000 - lastTick);
+		ps+= delta;
+		particleProgress += delta;
+		ps = Math.min(drawTime,ps);
+
+		var progress = ps/drawTime;
+
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+		//console.log(particles.length)
+		for (var i = 0; i<particles.length; i++) //draw particles
+		{
+			var part = particles[i]; //colour, age, x, y, rot, ySpeed, rotSpeed
+
+			if (part != null)
+			{
+				var rot = part[4]/360*Math.PI*2; //radians
+
+				ctx.beginPath();
+				ctx.lineJoin = "round";
+				ctx.lineWidth = lineWidth;
+				ctx.lineJoin = "round";
+				ctx.lineCap = "round";
+				ctx.fillStyle = part[0];
+				var bx = 0;
+				var by = 0;
+				for (var p = 0; p<4;p++)
+				{
+					var rto = rot+(.5*p*Math.PI)
+					var x = xx(part[2]) + psc(Math.cos(rto) * particleSize);
+					var y = yy(part[3]) + psc(Math.sin(rto) * particleSize);
+
+					if (p==0)
+					{
+						ctx.moveTo(x,y)
+						bx = x;
+						by = y;
+					}else
+					{
+						ctx.lineTo(x,y)
+					}
+
+					if (p==3)
+					{
+						ctx.lineTo(bx,by)
+						ctx.moveTo(bx,by)
+					}
+				}
+				ctx.fill();
+				ctx.closePath();
+			}
+		}
+
+		//console.log(wGuesses,drawings[drawing].length, lerp(1,0,progress))
+		ctx.fillStyle = "#FFFFFF";
+		ctx.beginPath();
+		for (var i = 0; i<Math.min(wGuesses,drawings[drawing].length);i++) //draw lines
+		{
+			var lastLine = i==Math.min(wGuesses,drawings[drawing].length)-1;
+			var nextDraw = drawings[drawing][i]
+			if (nextDraw[0]=="l") //is line
+			{
+				ctx.lineJoin = "round";
+				ctx.lineWidth = lineWidth;
+				ctx.lineJoin = "round";
+				ctx.lineCap = "round";
+
+				ctx.moveTo(px(nextDraw[1]),py(nextDraw[2]))
+				if (lastLine)
+				{
+					ctx.lineTo(px( lerp(nextDraw[1],nextDraw[3],progress) ),py( lerp(nextDraw[2],nextDraw[4],progress) ));
+				}else
+				{
+					ctx.lineTo(px(nextDraw[3]),py(nextDraw[4]));
+				}
+			}else if (nextDraw[0]=="c") //is circle
+			{
+				ctx.lineJoin = "round";
+				ctx.lineWidth = lineWidth;
+				ctx.lineJoin = "round";
+				ctx.lineCap = "round";
+
+				if (lastLine)
+				{
+					ctx.arc(px(nextDraw[1]),py(nextDraw[2]),psc(nextDraw[3]),-Math.PI*.5,Math.PI*2*progress-Math.PI*.5);
+				}else
+				{
+					ctx.arc(px(nextDraw[1]),py(nextDraw[2]),psc(nextDraw[3]),-Math.PI*.5,Math.PI*2);
+				}
+			}
+		}
+		ctx.stroke();
+		ctx.closePath();
+		if (wGuesses>=drawings[drawing].length)
+		{
+			lost = true;
+			disableButtons();
+			//TODO lose thing
+		}
+
+		if (particleProgress >= particleRate && (victory||lost)) //new particle time
+		{
+			particleProgress  = 0;
+			var openIndex = findValueInArray(particles,null)
+			var pos = 0;
+
+			if (openIndex == null)
+			{
+				pos = particles.length;
+			}else
+			{
+				pos = openIndex;
+			}
+
+			var col = "#2fa2c4";
+			if(victory)
+			{
+				col = makeRandomColour();
+			}
+
+			particles[pos] = [col ,0,Math.random(),-particleSize,0, Math.random()*particleSpeed, (Math.random()-.5)*particleRotSpeed*2]; //colour, age, x, y, rot, ySpeed, rotSpeed
+		}
+
+		for (var i = 0; i <particles.length; i++)//increase age etc
+		{
+			if (particles[i] != null)
+			{
+				particles[i][1]+=delta; //age
+				particles[i][3]+= delta*particles[i][5]; //y pos
+				particles[i][4]+= delta*particles[i][6]; //rot
+
+				if (particles[i][1] >= particleLife)
+				{
+					particles[i] = null;
+				}
+			}
+		}
+
+		lastTick = timestamp/1000;
+		window.requestAnimationFrame(onDraw);
+	}
+
+	function updateGuessingWord()
+	{
+		var procces = word;
+		var output = "";
+		var allCorrect = true;
+
+		for (var i=0; i<procces.length; i++)
+		{
+			var c = procces.charAt(i)
+
+			if (isInArray(c,guesses) || isInArray(c,otherChars))
+			{
+				output = output+c;
+			}else
+			{
+				output = output+"?";
+				allCorrect = false;
+			}
+		}
+
+		if(allCorrect)
+		{
+			victory = true;
+			alert("You won!")
+			disableButtons();
+			//TODO victory
+		}
+
+		things.innerHTML = output;
+	}
+
+	function makeRandomColour()
+	{
+		return "#"+ (round(Math.random()*255)).toString(16) + (round(Math.random()*255)).toString(16) + (round(Math.random()*255)).toString(16);
+	}
+
+	function findValueInArray(arr, val)
+	{
+		var returnIndex = null;
+		for (var i=0; i<arr.length;i++)
+		{
+			if(arr[i] == val)
+			{
+				returnIndex = i;
+				break
+			}
+		}
+		return returnIndex;
+	}
+
+	function disableButtons()
+	{
+		for (var i=1; i<=26; i++)
+		{
+			document.getElementById("button"+i).disabled = true;
+		}
+	}
+	function enableButtons()
+	{
+		for (var i=1; i<=26; i++)
+		{
+			document.getElementById("button"+i).disabled = false;
+		}
+	}
+
+	function lerp(s,e,t)
+	{
+		return s * (1-t) + e * t;
+	}
+
+	function round(a)
+	{
+		return Math.floor(a+.5)
+	}
+
+	function px(x) //x scale to x coordinate
+	{
+		var sml = Math.min(canvas.height,canvas.width);
+		var re = x;
+		
+		if(sml == canvas.width)
+		{
+			re = x*canvas.width;
+		}else
+		{
+			re = x*canvas.height + (canvas.width - canvas.height)/2;
+		}
+
+		return re;
+	}
+	function py(y) //y scale to y coordinate
+	{
+		var sml = Math.min(canvas.height,canvas.width);
+		var re = y;
+		
+		if(sml == canvas.height)
+		{
+			re = y*canvas.height;
+		}else
+		{
+			re = y*canvas.width + (canvas.height - canvas.width)/2;
+		}
+
+		return re;
+	}
+	function psc(s) //s scale to size
+	{
+		var sml = Math.min(canvas.height,canvas.width);
+		return s*sml
+	}
+
+	function xx(x)
+	{
+		return x*canvas.width
+	}
+	function yy(y)
+	{
+		return y*canvas.height
+	}
+
+	var drawings = [
+		[["l",0,.9,1,.9],["l",.15,.9,.15,.15],["l",.15,.15,.75,.15],["l",.15,.3,.3,.15],["l",.7,.15,.7,.25],["c",.7,.325,.075],["l",.7,.4,.7,.55],["l",.7,.4,.6,.5],["l",.7,.4,.8,.5],["l",.7,.55,.6,.65],["l",.7,.55,.8,.65]]
+	];
+
+	window.requestAnimationFrame(onDraw) //start drawing loop
+	resizeCanvas() //resize at the beginning
+	setTimeout(() => { resizeCanvas(); }, 12); //resize again because else it is behind the scroll bar
+</script>
+
+
+</body>
+</html>
